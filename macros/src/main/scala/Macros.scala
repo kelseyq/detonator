@@ -23,15 +23,20 @@ object Macros {
           None
         }.tree)
 
+        val declareParams = params.map { p =>
+          ValDef(Modifiers(Flag.PARAM), p.name, TypeTree(c.weakTypeOf[A].normalize), EmptyTree)
+        }
+
         val declareInst = DefDef(Modifiers(), newTermName("_declareInst"), List(),
-          List(params),
+          List(declareParams),
           TypeTree(),
           Block(List(
-            ValDef(Modifiers(), newTermName("_res"), TypeTree(), body),
+            ValDef(Modifiers(), newTermName("_res"), TypeTree(), c.resetAllAttrs(body)),
             Assign(Ident(newTermName("_inst")),
               Apply(Select(Select(Ident("scala"), newTermName("Some")), newTermName("apply")),
                 List(Ident(newTermName("_res"))))
             )), Ident(newTermName("_res"))))
+
 
         val applyDef = DefDef(Modifiers(), newTermName("apply"), List(),
           List(params),
@@ -40,10 +45,17 @@ object Macros {
               p => Ident(p.name)
             }))))
 
-        val obj = ModuleDef(Modifiers(), newTermName("REGEXES"), Template(objInheritance, emptyValDef, List(constructor, inst, declareInst, applyDef)))
+        val objectName = newTermName(c.fresh("TheObject"))
 
-        val partiallyApplied = Function(params,
-          Apply(Select(Ident(newTermName("REGEXES")), newTermName("apply")), params.map {
+        val obj = ModuleDef(Modifiers(), objectName, Template(objInheritance, emptyValDef, List(constructor, inst, declareInst, applyDef)))
+
+        val applyParams =  params.map { p =>
+          ValDef(Modifiers(Flag.PARAM), c.fresh(p.name), TypeTree(c.weakTypeOf[A].normalize), EmptyTree)
+        }
+
+        val partiallyApplied = Function(
+          applyParams,
+          Apply(Select(Ident(objectName), newTermName("apply")), applyParams.map {
             p => Ident(p.name)
           }))
 
@@ -55,7 +67,7 @@ object Macros {
         c.Expr[A => B](block)
       }
       case _ => println("no match")
-        //TODO: apply accesses lazy val
+        //TODO: no param functions turn into lazy val, function references?
         c.Expr[Any](Literal(Constant(())))
     }
   }
