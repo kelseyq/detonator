@@ -3,9 +3,9 @@ import scala.reflect.macros.Context
 
 object Macros {
 
-  def singleton[A, B](param: A => B) = macro singletonImpl[A, B]
+  def singleton[R](param: Any) = macro singletonImpl[R]
 
-  def singletonImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](c: Context)(param: c.Expr[A => B]) = {
+  def singletonImpl[R](c: Context)(param: c.Expr[Any]) = {
     import c.universe._
     import nme.CONSTRUCTOR
     import tpnme.EMPTY
@@ -14,6 +14,7 @@ object Macros {
     val constructor = DefDef(Modifiers(), CONSTRUCTOR, List(), List(List()), TypeTree(), constructorBody)
     val objInheritance = List(Ident(newTypeName("AnyRef")))
 
+    //TODO: verify return type, throw error if no match
     param.tree match {
       case Function(params, body) => {
         println("it's a function with params: " + params)
@@ -24,7 +25,7 @@ object Macros {
         }.tree)
 
         val declareParams = params.map { p =>
-          ValDef(Modifiers(Flag.PARAM), p.name, TypeTree(c.weakTypeOf[A].normalize), EmptyTree)
+          ValDef(Modifiers(Flag.PARAM), p.name, p.tpt, EmptyTree)
         }
 
         val declareInst = DefDef(Modifiers(), newTermName("_declareInst"), List(),
@@ -50,7 +51,7 @@ object Macros {
         val obj = ModuleDef(Modifiers(), objectName, Template(objInheritance, emptyValDef, List(constructor, inst, declareInst, applyDef)))
 
         val applyParams =  params.map { p =>
-          ValDef(Modifiers(Flag.PARAM), c.fresh(p.name), TypeTree(c.weakTypeOf[A].normalize), EmptyTree)
+          ValDef(Modifiers(Flag.PARAM), c.fresh(p.name), p.tpt, EmptyTree)
         }
 
         val partiallyApplied = Function(
@@ -64,7 +65,7 @@ object Macros {
 
         println(show(block))
 
-        c.Expr[A => B](block)
+        c.Expr[R](block)
       }
       case _ => println("no match")
         //TODO: no param functions turn into lazy val, function references?
