@@ -65,14 +65,8 @@ object Macros {
 
       val block = Block(List(obj), partiallyApplied)
 
-     // println(show(block))
-
       c.Expr[T](block)
     }
-//    println(param.tree)
-//    println(param.actualType)
-//    println("T: " + tt.tpe)
-    //   println("U: " + ut.tpe)
 
     val funcs = (0 to 22).map { c.universe.definitions.FunctionClass(_) }.toList
 
@@ -80,11 +74,6 @@ object Macros {
     param.tree match {
       case f @ Function(body, params) =>
         convertFunctionToSingletonObject(f)
-      case Block(stats, expr @ Function(_,_)) => 
-        //todo: handle stats
-        convertFunctionToSingletonObject(expr)
-      case Block(stats, expr) =>
-        c.abort(c.enclosingPosition, "No singleton function found, got block w/o ending function: " + stats + " " + expr)
       case other if (funcs.exists { tt.tpe.typeSymbol == _ }) =>
           val targs = tt.tpe match {
             case TypeRef(_, _, args) => args
