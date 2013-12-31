@@ -8,7 +8,11 @@ object BuildSettings {
     scalaVersion := "2.10.2",
     resolvers += Resolver.sonatypeRepo("snapshots"),
     resolvers += Resolver.sonatypeRepo("releases"),
-    scalacOptions ++= Seq()
+    scalacOptions ++= Seq(),
+    libraryDependencies ++= Seq(
+      "org.specs2" %% "specs2" % "2.3.6"
+    ),
+      resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
   )
 }
 
